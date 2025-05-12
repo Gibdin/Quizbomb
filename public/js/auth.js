@@ -43,7 +43,8 @@ document.addEventListener('DOMContentLoaded', () => {
   
         // Store token & redirect
         localStorage.setItem('token', json.token);
-        window.location.href = '/index.html';
+        window.location.href = '/multiplayer.html';
+
   
       } catch (err) {
         errEl.textContent = err.message;

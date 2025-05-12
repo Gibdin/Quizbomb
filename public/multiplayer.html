@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>QuizBomb – Multiplayer Lobby</title>
+  <link rel="stylesheet" href="css/multiplayer.css"/>
+</head>
+<body>
+  <!-- Lobby Section -->
+  <section id="lobby">
+    <h2>QuizBomb</h2>
+    <h3>Multiplayer</h3>
+    <div class="controls">
+      <button id="createRoom" class="primary">Create Room</button>
+      <button id="joinRoom" class="primary">Join Room</button>
+      <button id="showLeaderboard" class="secondary">Leaderboard</button>
+    </div>
+    <p id="lobbyInfo">No room joined.</p>
+  </section>
+
+  <!-- Create Room Modal -->
+  <div class="modal" id="createModal">
+    <div class="modal-content">
+      <h3>Room Code</h3>
+      <p id="roomCodeDisplay" class="room-code">------</p>
+      <h4>Players in Lobby</h4>
+      <ul id="playerList"></ul>
+      <button id="startGame" class="primary">Start Game</button>
+      <span class="close" id="closeCreate">&times;</span>
+    </div>
+  </div>
+
+  <!-- Join Room Modal -->
+  <div class="modal" id="joinModal">
+    <div class="modal-content">
+      <h3>Available Rooms</h3>
+      <ul id="roomsList"></ul>
+      <span class="close" id="closeJoin">&times;</span>
+    </div>
+  </div>
+
+  <!-- Game Screen -->
+  <section id="game" style="display:none">
+    <h2>Game Room: <span id="roomCode"></span></h2>
+    <div id="promptArea"></div>
+    <input id="answerInput" placeholder="Type your translation…" autofocus />
+    <div id="timerDisplay"></div>
+    <div id="statusLog"></div>
+  </section>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="js/multiplayer.js"></script>
+</body>
+</html>

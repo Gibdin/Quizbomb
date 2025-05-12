@@ -1,0 +1,135 @@
+:root {
+    --bg-color: #292929;
+    --fg-color: #fff;
+    --font: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+    --primary-color: #0ce9de;
+    --border-radius: 5px;
+  }
+  
+  html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    background-color: var(--bg-color);
+    color: var(--fg-color);
+    font-family: var(--font);
+    display: flex;
+    flex-direction: column;
+  }
+  
+  /* Lobby styling */
+  #lobby {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+  }
+  
+  #lobby h2 {
+    margin: 0;
+    font-size: 2rem;
+  }
+  
+  #lobby button {
+    background-color: var(--bg-color);
+    color: var(--fg-color);
+    border: 1px solid var(--fg-color);
+    border-radius: var(--border-radius);
+    padding: 0.75rem 1.5rem;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background-color 0.3s, color 0.3s;
+  }
+  
+  #lobby button:hover {
+    background-color: var(--fg-color);
+    color: var(--bg-color);
+  }
+  
+  #lobby #lobbyInfo {
+    margin-top: 1rem;
+    font-size: 0.9rem;
+  }
+  
+  /* Game screen styling */
+  #game {
+    flex: 1;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: start;
+    padding: 1rem;
+    gap: 1rem;
+  }
+  
+  #game h2 {
+    margin: 0;
+    font-size: 1.5rem;
+  }
+  
+  #playerList {
+    width: 90%;
+    max-width: 400px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    justify-content: center;
+  }
+  
+  .player {
+    background-color: rgba(255,255,255,0.1);
+    border: 1px solid var(--fg-color);
+    border-radius: var(--border-radius);
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+  }
+  
+  #promptArea {
+    font-size: 2rem;
+    margin: 1rem 0;
+  }
+  
+  #answerInput {
+    font-size: 1.25rem;
+    padding: 0.5rem;
+    border: 1px solid var(--fg-color);
+    border-radius: var(--border-radius);
+    background-color: var(--bg-color);
+    color: var(--fg-color);
+    width: 80%;
+    max-width: 300px;
+    text-align: center;
+  }
+  
+  #timerDisplay {
+    font-size: 1.5rem;
+    margin-top: 0.5rem;
+  }
+  
+  #statusLog {
+    width: 90%;
+    max-width: 400px;
+    height: 120px;
+    overflow-y: auto;
+    background-color: rgba(255,255,255,0.05);
+    border: 1px solid var(--fg-color);
+    border-radius: var(--border-radius);
+    padding: 0.5rem;
+    font-size: 0.85rem;
+  }
+  
+  /* Scrollbar styling */
+  #statusLog::-webkit-scrollbar {
+    width: 6px;
+  }
+  #statusLog::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  #statusLog::-webkit-scrollbar-thumb {
+    background-color: var(--fg-color);
+    border-radius: 3px;
+  }
+  
