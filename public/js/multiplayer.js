@@ -1,128 +1,206 @@
 // File: public/js/multiplayer.js
 
 const socket = io();
+const me     = localStorage.getItem('qb_user') || 'Player';
 
 // ----- UI References -----
 const lobbySection    = document.getElementById('lobby');
 const gameSection     = document.getElementById('game');
 const infoText        = document.getElementById('lobbyInfo');
-
-// Create Room Modal
 const createBtn       = document.getElementById('createRoom');
+const joinBtn         = document.getElementById('joinRoom');
 const createModal     = document.getElementById('createModal');
+const joinModal       = document.getElementById('joinModal');
+const createForm      = document.getElementById('createForm');
+const cancelCreate    = document.getElementById('cancelCreate');
+const closeCreateBtn  = document.getElementById('closeCreate');
+const lobbyInfoBox    = document.getElementById('lobbyInfoBox');
 const roomCodeDisplay = document.getElementById('roomCodeDisplay');
 const playerList      = document.getElementById('playerList');
 const startGameBtn    = document.getElementById('startGame');
-const closeCreate     = document.getElementById('closeCreate');
-
-// Join Room Modal
-const joinBtn         = document.getElementById('joinRoom');
-const joinModal       = document.getElementById('joinModal');
 const roomsList       = document.getElementById('roomsList');
-const closeJoin       = document.getElementById('closeJoin');
+const joinForm        = document.getElementById('joinForm');
+const cancelJoin      = document.getElementById('cancelJoin');
+const closeJoinBtn    = document.getElementById('closeJoin');
 
 let currentRoom = null;
 let isHost      = false;
 
 // Helper to show/hide modals
-function showModal(modal) {
-  modal.style.display = 'flex';
-}
-function hideModal(modal) {
-  modal.style.display = 'none';
-}
+function showModal(modal) { modal.style.display = 'flex'; }
+function hideModal(modal) { modal.style.display = 'none'; }
 
-// 1) Create Room Flow
+// ─── 1) Live lobby list via WebSocket ─────────────────
+socket.on('rooms:update', rooms => {
+  roomsList.innerHTML = rooms.map(r => {
+    const lock = r.isPrivate ? ' 🔒' : '';
+    return `<li>
+      <button class="joinBtn" data-code="${r.code}" data-private="${r.isPrivate}">
+        ${r.code}${lock} (${r.name})
+      </button>
+    </li>`;
+  }).join('');
+
+  joinForm.style.display = 'none';
+
+  document.querySelectorAll('.joinBtn').forEach(btn => {
+    btn.onclick = () => {
+      const code        = btn.dataset.code;
+      const privateRoom = btn.dataset.private === 'true';
+
+      if (!privateRoom) {
+        // --- Public room: auto-join ---
+        currentRoom = code;
+        isHost      = false;
+
+        createForm.style.display   = 'none';
+        lobbyInfoBox.style.display = 'block';
+        roomCodeDisplay.innerText  = code;
+        startGameBtn.style.display = 'none';
+
+        hideModal(joinModal);
+        showModal(createModal);
+
+        socket.emit('join-room', {
+          roomCode:   code,
+          playerName: me,
+          password:   undefined
+        });
+      } else {
+        // --- Private room: prompt for password ---
+        joinForm.roomCode.value = code;
+        joinForm.querySelector('.password-field')
+                .style.display = 'grid';
+        joinForm.password.value = '';
+        joinForm.style.display   = 'grid';
+
+        hideModal(createModal);
+        showModal(joinModal);
+      }
+    };
+  });
+});
+
+// ─── 2) Create Room Flow ─────────────────────────────
 createBtn.onclick = () => {
-  socket.emit('create-room');
+  createForm.reset();
+  joinForm.style.display     = 'none';
+  lobbyInfoBox.style.display = 'none';
+  showModal(createModal);
 };
 
-socket.on('room-created', code => {
+createForm.addEventListener('submit', e => {
+  e.preventDefault();
+  socket.emit('create-room', {
+    hostName:    me,
+    name:        createForm.roomName.value.trim() || undefined,
+    maxPlayers:  parseInt(createForm.maxPlayers.value, 10) || 6,
+    promptTimer: parseInt(createForm.promptTimer.value, 10) || 10,
+    language:    createForm.language.value,
+    isPrivate:   createForm.isPrivate.checked,
+    password:    createForm.isPrivate.checked
+                   ? createForm.password.value
+                   : undefined
+  });
+});
+
+cancelCreate.onclick = () => {
+  lobbyInfoBox.style.display = 'none';
+  createForm.style.display   = '';
+  hideModal(createModal);
+};
+closeCreateBtn.onclick = cancelCreate.onclick;
+
+// ─── 3) Handle “room-created” (host view) ───────────
+socket.on('room-created', ({ code }) => {
   currentRoom = code;
   isHost      = true;
 
-  roomCodeDisplay.innerText = code;
-  infoText.textContent       = `Room created: ${code}`;
-
-  // Clear previous list and add self
-  playerList.innerHTML = `<li>You (host)</li>`;
-
-  // Show modal & enable start
+  createForm.style.display   = 'none';
+  lobbyInfoBox.style.display = 'block';
+  roomCodeDisplay.innerText  = code;
   startGameBtn.style.display = 'inline-block';
+
   showModal(createModal);
 });
 
-// Start Game (host only)
-startGameBtn.onclick = () => {
-  if (!isHost || !currentRoom) return;
-  socket.emit('start-game', currentRoom);
+// ─── 4) Join Room Flow ───────────────────────────────
+joinBtn.onclick = () => {
+  socket.emit('get-rooms');
+  joinForm.style.display = 'none';
+  showModal(joinModal);
 };
 
-// Close Create Modal
-closeCreate.onclick = () => hideModal(createModal);
+joinForm.addEventListener('submit', e => {
+  e.preventDefault();
 
-// 2) Join Room Flow
-joinBtn.onclick = async () => {
-  try {
-    const res   = await fetch('/api/rooms');
-    const rooms = await res.json();
+  const code = joinForm.roomCode.value;
+  currentRoom = code;
+  isHost      = false;
 
-    roomsList.innerHTML = rooms
-      .map(code => `<li><button class="joinCodeBtn">${code}</button></li>`)
-      .join('');
+  createForm.style.display   = 'none';
+  lobbyInfoBox.style.display = 'block';
+  roomCodeDisplay.innerText  = code;
+  startGameBtn.style.display = 'none';
 
-    // Attach click handlers
-    document.querySelectorAll('.joinCodeBtn').forEach(btn => {
-      btn.onclick = () => {
-        const code = btn.innerText;
-        socket.emit('join-room', code);
-        hideModal(joinModal);
-      };
-    });
+  hideModal(joinModal);
+  showModal(createModal);
 
-    showModal(joinModal);
-  } catch (err) {
-    alert('Error fetching rooms');
+  socket.emit('join-room', {
+    roomCode:   code,
+    playerName: me,
+    password:   joinForm.password.value || undefined
+  });
+});
+
+cancelJoin.onclick = () => {
+  joinForm.style.display = 'none';
+  hideModal(joinModal);
+};
+closeJoinBtn.onclick = cancelJoin.onclick;
+
+// ─── 5) Update Player List on any change ────────────
+socket.on('room:players', players => {
+  playerList.innerHTML = players.map(name => `<li>${name}</li>`).join('');
+  infoText.textContent  = `Room: ${currentRoom} | ${players.length} player(s)`;
+});
+
+// ─── 6) Start Game (host only) ──────────────────────
+startGameBtn.onclick = () => {
+  if (isHost && currentRoom) {
+    socket.emit('start-game', { roomCode: currentRoom });
   }
 };
 
-// Close Join Modal
-closeJoin.onclick = () => hideModal(joinModal);
-
-// 3) Error Handling
-socket.on('error', msg => {
-  alert(msg);
-});
-
-// 4) Update Player List
-socket.on('player-list', players => {
-  // players: { socketId: { lives, score } }
-  const items = Object.entries(players).map(([id, p]) => {
-    const label = id === socket.id ? 'You' : `Player ${id.slice(-4)}`;
-    return `<li>${label} (❤️ ${p.lives}, ⭐ ${p.score})</li>`;
-  });
-  playerList.innerHTML = items.join('');
-
-  infoText.textContent = `Room: ${currentRoom} | ${items.length} player(s)`;
-
-  // Only host sees the start button
-  startGameBtn.style.display = isHost ? 'inline-block' : 'none';
-});
-
-// 5) Game Start
-socket.on('game-start', () => {
+// ─── 7) Game Flow Handlers ──────────────────────────
+socket.on('game:start', ({ promptTimer }) => {
   hideModal(createModal);
   lobbySection.style.display = 'none';
   gameSection.style.display  = 'flex';
-  // TODO: initialize multiplayer game prompt loop
+});
+socket.on('game:prompt', ({ word, timer }) => {
+  document.getElementById('prompt-text').textContent = word;
+  const timerText = document.getElementById('timer-text');
+  let remaining   = timer;
+  timerText.textContent    = remaining;
+  clearInterval(window._countdown);
+  window._countdown = setInterval(() => {
+    timerText.textContent = --remaining;
+    if (remaining <= 0) clearInterval(window._countdown);
+  }, 1000);
+});
+socket.on('game:reveal', ({ answer }) => {
+  document.getElementById('reveal-text').textContent = answer;
+});
+socket.on('game:end', () => {
+  document.getElementById('game-end').style.display = 'block';
 });
 
-// 6) Clean up on disconnect
+// ─── 8) Clean Up on Disconnect ──────────────────────
 socket.on('disconnect', () => {
-  // Optionally: reset UI
   lobbySection.style.display = 'block';
   gameSection.style.display  = 'none';
   hideModal(createModal);
   hideModal(joinModal);
-  infoText.textContent = 'Disconnected';
+  infoText.textContent        = '';
 });

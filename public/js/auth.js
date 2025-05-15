@@ -27,10 +27,14 @@ document.addEventListener('DOMContentLoaded', () => {
     // Shared form submit handler
     async function handleFormSubmit(e, endpoint, errorId) {
       e.preventDefault();
-      const form = e.target;
-      const data = Object.fromEntries(new FormData(form).entries());
       const errEl = document.getElementById(errorId);
-      errEl.textContent = '';
+      const form  = e.target;
+  
+      // build payload
+      const data = {
+        username: form.username.value.trim(),
+        password: form.password.value
+      };
   
       try {
         const res = await fetch(`/api/${endpoint}`, {
@@ -41,10 +45,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const json = await res.json();
         if (!res.ok) throw new Error(json.error || 'Unknown error');
   
-        // Store token & redirect
-        localStorage.setItem('token', json.token);
+        // Store token & username, then redirect
+        localStorage.setItem('qb_token', json.token);
+        localStorage.setItem('qb_user', json.username);
         window.location.href = '/multiplayer.html';
-
   
       } catch (err) {
         errEl.textContent = err.message;
@@ -63,4 +67,3 @@ document.addEventListener('DOMContentLoaded', () => {
       handleFormSubmit(e, 'register', 'signupError')
     );
   });
-  

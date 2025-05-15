@@ -2,11 +2,11 @@
   "name": "quizbomb",
   "version": "1.0.0",
   "description": "Dissertation project",
-  "main": "index.js",
+  "main": "server/index.js",
   "type": "module",
   "scripts": {
-    "start": "node server/auth.js",
-    "dev":   "nodemon server/auth.js"
+    "start": "node server/index.js",
+    "dev":   "nodemon server/index.js"
   },
   "keywords": [],
   "author": "",
