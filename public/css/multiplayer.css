@@ -5,10 +5,47 @@
     --font: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
     --primary-color: #0ce9de;
     --border-radius: 5px;
-  }
-  
-  /* Global resets */
-  html, body {
+}  /* ← make sure you close :root here! */
+
+/* ─── Leaderboard Modal (does NOT affect #endModal) ─── */
+#leaderboardModal .modal-content {
+  max-width: 320px;
+  padding: 1.5rem;
+  text-align: center;
+  background: #1f1f1f;
+  border-radius: var(--border-radius);
+}
+
+#leaderboardList {
+  list-style: none;
+  margin: 1rem 0;
+  padding: 0;
+}
+
+#leaderboardList li {
+  color: var(--fg-color);
+  font-size: 1rem;
+  margin: 0.25rem 0;
+}
+
+#closeLeaderboard {
+  display: inline-block;
+  margin-top: 1rem;
+  background: var(--primary-color);
+  color: var(--bg-color);
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: var(--border-radius);
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+#closeLeaderboard:hover {
+  opacity: 0.9;
+}
+
+/* Global resets */
+html, body {
     margin: 0;
     padding: 0;
     width: 100%;
@@ -188,4 +225,159 @@
   
   /* Join form hidden until a room is selected */
   #joinForm { display: none; }
+
+  /* Reset list styling and ensure block layout */
+  #playerList,
+  #roomsList {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
   
+  #playerList li,
+  #roomsList li {
+    display: block;           /* force each <li> on its own line */
+    padding: 0.25rem 0;       /* vertical spacing */
+    /* optional separator: */
+    /* border-bottom: 1px solid var(--fg-color); */
+  }
+
+  /* -------------- Multiplayer game layout -------------- */
+  .game-container {
+    position: relative;
+    width: 100%;
+    /* adjust height if needed to fit under your header */
+    height: calc(100vh - 100px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2rem;              /* space between prompt and scoreboard */
+    padding-bottom: 4rem; /* give room for footer */
+  }
+  
+  #promptArea {
+    position: relative;
+    z-index: 2;
+    background: var(--bg-color);
+    color: var(--fg-color);
+    padding: 1.5rem 2rem;
+    border: 2px solid var(--fg-color);
+    border-radius: var(--border-radius);
+    text-align: center;
+  }
+  
+  .players-circle {
+    position: static !important;
+    width: auto;
+    height: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    padding: 0;
+    margin: 0.5rem 0 0;
+    list-style: none;
+  }
+  
+  .players-circle li {
+    background: var(--fg-color);
+    color: var(--bg-color);
+    padding: 0.5rem 1rem;
+    border-radius: var(--border-radius);
+    font-size: 1rem;
+  }
+
+  .players-circle li.active-turn {
+    border: 2px solid var(--primary-color);
+    box-shadow: 0 0 8px var(--primary-color);
+  }
+
+  #prompt-text,
+  #timer-text,
+  #reveal-text,
+  #turn-text,
+  #game-end {
+    margin: 0.5rem 0;
+  }
+
+  /* show each player + lives on its own line/token */
+  .players-circle li {
+    display: inline-block;
+    margin: 0.5rem;
+    padding: 0.25rem 0.5rem;
+  }
+  
+  /* highlight active turn */
+  .players-circle li.active-turn {
+    border: 2px solid var(--primary-color);
+    box-shadow: 0 0 8px var(--primary-color);
+  }
+  
+  /* show eliminated players as faded/struck */
+  .players-circle li.eliminated {
+    opacity: 0.4;
+    text-decoration: line-through;
+  }
+
+  /* fade & strike‐through eliminated */
+  .players-circle li.eliminated {
+    opacity: 0.4;
+    text-decoration: line-through;
+  }
+
+  /* ensure body or game container doesn’t clip it */
+body, #game {
+  position: relative;
+}
+
+/* bottom‐center scoreboard */
+#gamePlayerList {
+  position: fixed;          /* FIXED, not absolute */
+  bottom: 1rem;             /* 1rem off the bottom of the window */
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 1rem;
+  background: rgba(255,255,255,0.1);
+  padding: 0.5rem 1rem;
+  border-radius: var(--border-radius);
+  align-items: flex-start;
+  max-width: 240px;
+  margin: 0;              /* reset any old margins */
+  z-index: 1000;            /* above everything else */
+}
+
+#gamePlayerList li {
+  background: transparent;
+  color: var(--fg-color);
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+/* ─── End-Game Modal Styling ───────────────────────── */
+#endModal .modal-content {
+  max-width: 320px;
+  text-align: center;
+}
+#leaderboard-list {
+  list-style: none;
+  padding: 0;
+  margin: 1rem 0;
+}
+#leaderboard-list li {
+  font-size: 1rem;
+  margin: 0.25rem 0;
+  color: var(--fg-color);
+}
+#returnButton {
+  background: var(--primary-color);
+  color: var(--bg-color);
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: var(--border-radius);
+  font-size: 1rem;
+  cursor: pointer;
+}
+#returnButton:hover {
+  opacity: 0.9;
+}

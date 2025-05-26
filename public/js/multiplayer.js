@@ -16,27 +16,40 @@ const cancelCreate    = document.getElementById('cancelCreate');
 const closeCreateBtn  = document.getElementById('closeCreate');
 const lobbyInfoBox    = document.getElementById('lobbyInfoBox');
 const roomCodeDisplay = document.getElementById('roomCodeDisplay');
-const playerList      = document.getElementById('playerList');
+const roomNameDisplay = document.getElementById('roomNameDisplay');
 const startGameBtn    = document.getElementById('startGame');
 const roomsList       = document.getElementById('roomsList');
 const joinForm        = document.getElementById('joinForm');
 const cancelJoin      = document.getElementById('cancelJoin');
 const closeJoinBtn    = document.getElementById('closeJoin');
+const lobbyPlayerList = document.getElementById('lobbyPlayerList');
+const gamePlayerList  = document.getElementById('gamePlayerList');
+const answerInput     = document.getElementById('answer-input');
+const promptTextEl    = document.getElementById('prompt-text');
+const timerTextEl     = document.getElementById('timer-text');
+const revealTextEl    = document.getElementById('reveal-text');
+const turnTextEl      = document.getElementById('turn-text');
+const sfxCorrect      = document.getElementById('sfx-correct');
+const sfxWrong        = document.getElementById('sfx-wrong');
+const leaderboardBtn    = document.getElementById('leaderboardBtn')
+const leaderboardModal  = document.getElementById('leaderboardModal')
+const leaderboardList   = document.getElementById('leaderboardList')
+const closeLeaderboard  = document.getElementById('closeLeaderboard')
 
 let currentRoom = null;
 let isHost      = false;
 
-// Helper to show/hide modals
+// modal helpers
 function showModal(modal) { modal.style.display = 'flex'; }
 function hideModal(modal) { modal.style.display = 'none'; }
 
-// ─── 1) Live lobby list via WebSocket ─────────────────
+// ─── 1) Live lobby list ──────────────────────────────
 socket.on('rooms:update', rooms => {
   roomsList.innerHTML = rooms.map(r => {
     const lock = r.isPrivate ? ' 🔒' : '';
     return `<li>
       <button class="joinBtn" data-code="${r.code}" data-private="${r.isPrivate}">
-        ${r.code}${lock} (${r.name})
+        ${r.code}${lock} (${r.name || '—'})
       </button>
     </li>`;
   }).join('');
@@ -49,7 +62,6 @@ socket.on('rooms:update', rooms => {
       const privateRoom = btn.dataset.private === 'true';
 
       if (!privateRoom) {
-        // --- Public room: auto-join ---
         currentRoom = code;
         isHost      = false;
 
@@ -67,7 +79,6 @@ socket.on('rooms:update', rooms => {
           password:   undefined
         });
       } else {
-        // --- Private room: prompt for password ---
         joinForm.roomCode.value = code;
         joinForm.querySelector('.password-field')
                 .style.display = 'grid';
@@ -105,24 +116,32 @@ createForm.addEventListener('submit', e => {
 });
 
 cancelCreate.onclick = () => {
-  lobbyInfoBox.style.display = 'none';
   createForm.style.display   = '';
+  lobbyInfoBox.style.display = 'none';
   hideModal(createModal);
 };
 closeCreateBtn.onclick = cancelCreate.onclick;
 
 // ─── 3) Handle “room-created” (host view) ───────────
-socket.on('room-created', ({ code }) => {
-  currentRoom = code;
-  isHost      = true;
+socket.on('room-created', ({ roomCode, roomName }) => {
+  currentRoom               = roomCode;
+  isHost                    = true;
 
   createForm.style.display   = 'none';
   lobbyInfoBox.style.display = 'block';
-  roomCodeDisplay.innerText  = code;
-  startGameBtn.style.display = 'inline-block';
 
-  showModal(createModal);
+  roomCodeDisplay.innerText  = roomCode;
+  roomNameDisplay.innerText  = roomName || '—';
+
+  startGameBtn.style.display = 'inline-block';
 });
+
+// ─── fire off “start-game” when host clicks ────────
+startGameBtn.addEventListener('click', () => {
+  if (currentRoom && isHost) {
+    socket.emit('start-game', { roomCode: currentRoom })
+  }
+})
 
 // ─── 4) Join Room Flow ───────────────────────────────
 joinBtn.onclick = () => {
@@ -159,10 +178,10 @@ cancelJoin.onclick = () => {
 };
 closeJoinBtn.onclick = cancelJoin.onclick;
 
-// ─── 5) Update Player List on any change ────────────
+// ─── 5) Update Player List in Lobby ─────────────────
 socket.on('room:players', players => {
-  playerList.innerHTML = players.map(name => `<li>${name}</li>`).join('');
-  infoText.textContent  = `Room: ${currentRoom} | ${players.length} player(s)`;
+  lobbyPlayerList.innerHTML = players.map(n => `<li>${n}</li>`).join('');
+  infoText.textContent      = `Room: ${currentRoom} | ${players.length} player(s)`;
 });
 
 // ─── 6) Start Game (host only) ──────────────────────
@@ -177,26 +196,126 @@ socket.on('game:start', ({ promptTimer }) => {
   hideModal(createModal);
   lobbySection.style.display = 'none';
   gameSection.style.display  = 'flex';
+
+  // reset UI
+  document.getElementById('game-end').style.display = 'none';
+  revealTextEl.textContent = '';
+  promptTextEl.textContent = '';
+  timerTextEl.textContent  = '';
+  turnTextEl.textContent   = '';
+  answerInput.disabled     = true;
 });
+
+// ─── 7.1) Update Lives Display ──────────────────────
+socket.on('player:update', players => {
+  gamePlayerList.innerHTML = '';
+  players.forEach(p => {
+    const li = document.createElement('li');
+    const pts = (typeof p.score === 'number' ? p.score : 0);
+    li.textContent = `${p.name}: ${pts} pts, ${p.lives} ❤️`;
+    gamePlayerList.appendChild(li);
+  });
+});
+
+// ─── 7.2) Handle Eliminations in Game List ──────────
+socket.on('player:eliminated', name => {
+  document.querySelectorAll('#gamePlayerList li').forEach(li => {
+    if (li.textContent.startsWith(name + ' ')) {
+      li.classList.add('eliminated');
+    }
+  });
+});
+
+// ─── 7.3) Highlight Turn & Enable Input ─────────────
+socket.off('game:turn').on('game:turn', ({ playerId, playerName }) => {
+  console.log('⏱ game:turn →', { playerId, playerName, myId: socket.id });
+  turnTextEl.textContent   = `${playerName}'s turn`;
+  answerInput.disabled     = socket.id !== playerId;
+  if (!answerInput.disabled) answerInput.focus();
+  document.querySelectorAll('#gamePlayerList li').forEach(li => {
+    li.classList.toggle('active-turn',
+      li.textContent.startsWith(playerName + ' ')
+    );
+  });
+});
+
+// ─── 7.4) Show Prompt & Start Countdown ────────────
 socket.on('game:prompt', ({ word, timer }) => {
-  document.getElementById('prompt-text').textContent = word;
-  const timerText = document.getElementById('timer-text');
-  let remaining   = timer;
-  timerText.textContent    = remaining;
-  clearInterval(window._countdown);
-  window._countdown = setInterval(() => {
-    timerText.textContent = --remaining;
-    if (remaining <= 0) clearInterval(window._countdown);
+  promptTextEl.textContent = word;
+  revealTextEl.textContent = '';
+  answerInput.value        = '';
+
+  let rem = timer;
+  timerTextEl.textContent = rem;
+  clearInterval(window._cnt);
+  window._cnt = setInterval(() => {
+    timerTextEl.textContent = --rem;
+    if (rem <= 0) clearInterval(window._cnt);
   }, 1000);
 });
+
+// ─── 7.5) Reveal Answer ──────────────────────────────
 socket.on('game:reveal', ({ answer }) => {
-  document.getElementById('reveal-text').textContent = answer;
+  revealTextEl.textContent = answer;
 });
+
+// ─── 7.6) Correct/Wrong Feedback & Sound FX ─────────
+socket.on('player:correct', ({ playerName }) => {
+  if (playerName === me) turnTextEl.textContent = '✅ You got it!';
+  else turnTextEl.textContent = `${playerName} was correct!`;
+  sfxCorrect.currentTime = 0;
+  sfxCorrect.play().catch(() => {});
+});
+
+socket.on('player:wrong', ({ playerName }) => {
+  if (playerName === me) turnTextEl.textContent = '❌ Wrong — try again';
+  sfxWrong.currentTime = 0;
+  sfxWrong.play().catch(() => {});
+});
+
+// ─── 7.7) End Game ───────────────────────────────────
 socket.on('game:end', () => {
   document.getElementById('game-end').style.display = 'block';
 });
 
-// ─── 8) Clean Up on Disconnect ──────────────────────
+// 7.8) End-Game Ranking Modal
+const endModal       = document.getElementById('endModal');
+const leaderboardEl  = document.getElementById('leaderboard-list');
+const returnButton   = document.getElementById('returnButton');
+
+socket.off('game:leaderboard').on('game:leaderboard', ranking => {
+  // hide game UI
+  gameSection.style.display = 'none';
+
+  // populate leaderboard with highScore (default to 0)
+  leaderboardEl.innerHTML = ranking
+    .map((p, i) =>
+      `<li>${i+1}. ${p.name} — ${p.highScore ?? 0} pts</li>`
+    ).join('');
+
+  // show end‐game modal
+  endModal.style.display = 'flex';
+});
+
+// Return to lobby
+returnButton.addEventListener('click', () => {
+  endModal.style.display   = 'none';
+  lobbySection.style.display = 'flex';
+  // reset lobby UI if needed…
+  // e.g. fetch updated rooms list
+  socket.emit('get-rooms');
+});
+
+// ─── 8) Submit Answer on Enter ──────────────────────
+answerInput.addEventListener('keydown', e => {
+  if (e.key !== 'Enter') return;
+  const ans = answerInput.value.trim();
+  if (!ans) return;
+  socket.emit('submit-answer', { roomCode: currentRoom, answer: ans });
+  answerInput.value = '';
+});
+
+// ─── 9) Clean Up on Disconnect ──────────────────────
 socket.on('disconnect', () => {
   lobbySection.style.display = 'block';
   gameSection.style.display  = 'none';
@@ -204,3 +323,23 @@ socket.on('disconnect', () => {
   hideModal(joinModal);
   infoText.textContent        = '';
 });
+
+leaderboardBtn.addEventListener('click', async () => {
+  // 1) fetch sorted high scores
+  const res = await fetch('/api/leaderboard')
+  const ranking = await res.json()
+  
+  // 2) populate the list
+  leaderboardList.innerHTML = ranking
+    .map((u, i) => 
+      `<li>${i+1}. ${u.name} — ${u.highScore} pts</li>`
+    ).join('')
+
+  // 3) show the modal
+  leaderboardModal.style.display = 'flex'
+})
+
+// close it
+closeLeaderboard.addEventListener('click', () => {
+  leaderboardModal.style.display = 'none'
+})

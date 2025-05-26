@@ -81,7 +81,12 @@ app.get('/api/wordPairs', (req, res) => {
   })
 })
 
-// ─── IN-MEMORY ROOMS ───────────────────────────────────
+// ─── IN‐MEMORY ROOMS & DEFAULTS ───────────────────────
+const DEFAULT_LIVES        = 3
+const DEFAULT_MAX_PLAYERS  = 4
+const DEFAULT_PROMPT_TIMER = 15    // seconds
+const DEFAULT_IS_PRIVATE   = false
+
 const rooms = new Map()
 
 // ─── LOAD WORD PAIRS AT STARTUP ────────────────────────
@@ -91,6 +96,11 @@ try {
 } catch (err) {
   console.error('Failed to load word pairs:', err)
 }
+
+// ─── DIFFICULTY & SCORING CONSTANTS ─────────────────
+const MEDIUM_THRESHOLD = 5;
+const HARD_THRESHOLD   = 10;
+const POINTS = { easy: 1, medium: 2, hard: 3 };
 
 // ─── UTILITY: GENERATE ROOM CODES ─────────────────────
 function generateCode(length = 5) {
@@ -104,19 +114,31 @@ function generateCode(length = 5) {
 
 // ─── HELPER: EXTRACT PUBLIC ROOM DATA ─────────────────
 function getRoomsData() {
-  return Array.from(rooms.values()).map(r => ({
-    code: r.code,
-    name: r.name,
-    hostName: r.hostName,
-    playerCount: r.players.length,
-    maxPlayers: r.settings.maxPlayers,
-    isPrivate: r.settings.isPrivate
-  }))
+  return Array.from(rooms.values()).map(r => {
+    // fallback to an empty object if settings was never set
+    const s = r.settings || {}
+    return {
+      code:        r.code,
+      hostName:    r.hostName,
+      playerCount: r.players.length,
+      maxPlayers:  s.maxPlayers  ?? DEFAULT_MAX_PLAYERS,
+      isPrivate:   s.isPrivate   ?? DEFAULT_IS_PRIVATE
+    }
+  })
 }
 
 // ─── API: LIST ACTIVE ROOMS ───────────────────────────
 app.get('/api/rooms', (req, res) => {
   res.json(getRoomsData())
+})
+
+// ─── LEADERBOARD ENDPOINT ─────────────────────────────
+app.get('/api/leaderboard', (req, res) => {
+  const users = readUsers()  // reads server/data/users.json
+  const ranking = users
+    .map(u => ({ name: u.username, highScore: u.highScore || 0 }))
+    .sort((a, b) => b.highScore - a.highScore)
+  res.json(ranking)
 })
 
 // ─── SOCKET.IO MULTIPLAYER LOGIC ───────────────────────
@@ -127,39 +149,51 @@ io.on('connection', socket => {
   socket.emit('rooms:update', getRoomsData())
 
   // Create Room
-  socket.on('create-room', ({ hostName, name, maxPlayers = 6, promptTimer = 10, language = 'fr', isPrivate = false, password } = {}) => {
+  socket.on('create-room', payload => {
+    // pull your form fields directly out of payload
+    const {
+      hostName,
+      name,
+      maxPlayers = DEFAULT_MAX_PLAYERS,
+      promptTimer = DEFAULT_PROMPT_TIMER,
+      language,
+      isPrivate = DEFAULT_IS_PRIVATE,
+      password
+    } = payload;
+
+    // build the settings object you actually want
+    const settings = {
+      name,
+      maxPlayers,
+      promptTimer,
+      language,
+      isPrivate,
+      password
+    };
+
     const code = generateCode();
-    const settings = { maxPlayers, promptTimer, language, isPrivate };
-    if (isPrivate && password) settings.password = password;
-  
     const room = {
       code,
-      name:     name || code,
       hostId:   socket.id,
-      hostName: hostName || 'Host',
-      players: [{ id: socket.id, name: hostName || 'Host', socket }],
-      settings
+      hostName,
+      settings,             // ✅ now contains promptTimer
+      players: [{
+        id:    socket.id,
+        name:  hostName,
+        lives: DEFAULT_LIVES,
+        score: 0
+      }],
+      eliminated:     [],
+      usedIndices:    { easy: [], medium: [], hard: [] },
+      currentTurnIndex: 0,
+      inProgress:     false
     };
-  
+
     rooms.set(code, room);
     socket.join(code);
-  
-    // 1) Tell the creator "room-created"
-    socket.emit('room-created', {
-      code,
-      room: getRoomsData().find(r => r.code === code)
-    });
-  
-    // 2) Immediately send the initial player list (just the host)
-    io.to(code).emit(
-      'room:players',
-      room.players.map(p => p.name)
-    );
-  
-    // 3) Update everyone’s lobby overview
+    socket.emit('room-created', { roomCode: code });
     io.emit('rooms:update', getRoomsData());
-  });
-  
+  })
 
   // Join Room
   socket.on('join-room', ({ roomCode, playerName, password } = {}) => {
@@ -173,7 +207,12 @@ io.on('connection', socket => {
     if (room.players.length >= room.settings.maxPlayers) {
       return socket.emit('room:join:error', 'Room is full')
     }
-    room.players.push({ id: socket.id, name: playerName, socket })
+    room.players.push({
+      id:    socket.id,
+      name:  playerName,
+      lives: 3,
+      score: 0
+    })
     socket.join(roomCode)
     io.to(roomCode).emit('room:players', room.players.map(p => p.name))
     io.emit('rooms:update', getRoomsData())
@@ -187,12 +226,151 @@ io.on('connection', socket => {
   
 
   // Start Game
-  socket.on('start-game', ({ roomCode } = {}) => {
+  socket.on('start-game', ({ roomCode }) => {
     const room = rooms.get(roomCode)
-    if (!room || room.hostId !== socket.id) return
-    io.to(roomCode).emit('game:start', { promptTimer: room.settings.promptTimer, language: room.settings.language })
+    if (!room || room.hostId !== socket.id
+      || room.inProgress
+    ) return
+
+    room.inProgress = true
+
+    // hide the lobby, show the game
+    io.to(roomCode).emit('game:start', {
+      promptTimer: room.settings.promptTimer
+    })
+
+    // send initial lives to all clients
+    io.to(roomCode).emit('player:update',
+      room.players.map(p => ({
+        name:  p.name,
+        lives: p.lives,
+        score: p.score     // ← add this so everyone starts at 0
+      }))
+    )
+
+    // kick off the prompt loop
     startPromptLoop(room)
   })
+
+  // ─── PROMPT LOOP: EMIT TURNS, PROMPTS, REVEALS, END ───
+  async function startPromptLoop(room) {
+    const { code, settings } = room;
+    const promptMs = settings.promptTimer * 1000;
+
+    function nextTurn() {
+      // if only one left → end + leaderboard
+      if (room.players.length <= 1) {
+        io.to(code).emit('game:end')
+
+        // 1) load users, bump any high scores, and write back
+        const users = readUsers()
+        for (const p of [...room.players, ...room.eliminated]) {
+          const u = users.find(u => u.username === p.name)
+          if (u && p.score > (u.highScore || 0)) {
+            u.highScore = p.score
+          }
+        }
+        writeUsers(users)
+
+        // 2) build & emit the all-time leaderboard
+        const ranking = users
+          .map(u => ({ name: u.username, highScore: u.highScore || 0 }))
+          .sort((a, b) => b.highScore - a.highScore)
+        return io.to(code).emit('game:leaderboard', ranking)
+      }
+
+      // pick current player
+      const turnPlayer = room.players[room.currentTurnIndex];
+
+      // 1) choose difficulty by their score
+      const lvl = turnPlayer.score >= HARD_THRESHOLD
+                ? 'hard'
+                : turnPlayer.score >= MEDIUM_THRESHOLD
+                  ? 'medium'
+                  : 'easy';
+
+      // 2) pick a random unused word from WORD_PAIRS[lvl]
+      const pool = WORD_PAIRS.filter(x => x.difficulty === lvl);
+      const used = room.usedIndices[lvl];
+      if (used.length >= pool.length) room.usedIndices[lvl] = [];
+      let idx;
+      do { idx = Math.floor(Math.random() * pool.length) }
+      while (room.usedIndices[lvl].includes(idx));
+      room.usedIndices[lvl].push(idx);
+      const pair = pool[idx];
+
+      // 3) announce turn & prompt
+      io.to(code).emit('game:turn', {
+        playerId:   turnPlayer.id,
+        playerName: turnPlayer.name
+      });
+      io.to(code).emit('game:prompt', {
+        word:  pair.french,
+        timer: settings.promptTimer
+      });
+
+      let turnOver = false;
+      const timeoutId = setTimeout(() => {
+        if (turnOver) return;
+        turnOver = true;
+        // timeout → lose a life
+        turnPlayer.lives--;
+        io.to(code).emit('player:update',
+          room.players.map(p => ({ name: p.name, lives: p.lives, score: p.score }))
+        );
+        if (turnPlayer.lives <= 0) {
+          room.eliminated.push(turnPlayer);
+          room.players = room.players.filter(p => p.id !== turnPlayer.id);
+          io.to(code).emit('player:eliminated', turnPlayer.name);
+        }
+        // reveal & advance
+        io.to(code).emit('game:reveal', { answer: pair.english });
+        advance();
+      }, promptMs);
+
+      // 4) handle guesses
+      function onAnswer({ roomCode, answer }) {
+        if (turnOver || roomCode !== code) return;
+        const norm = answer.trim().toLowerCase();
+        if (norm === pair.english.toLowerCase()) {
+          // correct → award pts & reveal
+          turnOver = true;
+          clearTimeout(timeoutId);
+          turnPlayer.score += POINTS[lvl];
+          io.to(code).emit('player:correct', {
+            playerId:   turnPlayer.id,
+            playerName: turnPlayer.name
+          });
+          io.to(code).emit('player:update',
+            room.players.map(p => ({ name: p.name, lives: p.lives, score: p.score }))
+          );
+          io.to(code).emit('game:reveal', { answer: pair.english });
+          advance();
+        } else {
+          // wrong → just ping
+          io.to(code).emit('player:wrong', {
+            playerId:   turnPlayer.id,
+            playerName: turnPlayer.name
+          });
+        }
+      }
+      io.sockets.sockets.get(turnPlayer.id).on('submit-answer', onAnswer);
+
+      // 5) advance helper
+      function advance() {
+        const sock = io.sockets.sockets.get(turnPlayer.id);
+        sock.off('submit-answer', onAnswer);
+        // move to next index (wrap)
+        room.currentTurnIndex =
+          room.currentTurnIndex % room.players.length;
+        room.currentTurnIndex =
+          (room.currentTurnIndex + 1) % room.players.length;
+        setTimeout(nextTurn, 1000);
+      }
+    }
+
+    nextTurn();
+  }
 
   // Handle disconnection
   socket.on('disconnect', () => {
@@ -209,18 +387,6 @@ io.on('connection', socket => {
     io.emit('rooms:update', getRoomsData())
   })
 })
-
-// ─── PROMPT LOOP: EMIT PROMPTS, REVEALS, END ──────────
-async function startPromptLoop(room) {
-  const { promptTimer } = room.settings
-  for (const pair of WORD_PAIRS) {
-    io.to(room.code).emit('game:prompt', { word: pair.fr, timer: promptTimer })
-    await new Promise(res => setTimeout(res, promptTimer * 1000))
-    io.to(room.code).emit('game:reveal', { answer: pair.en })
-    await new Promise(res => setTimeout(res, 2000))
-  }
-  io.to(room.code).emit('game:end')
-}
 
 // ─── START THE SERVER ──────────────────────────────────
 const PORT = process.env.PORT || 3000

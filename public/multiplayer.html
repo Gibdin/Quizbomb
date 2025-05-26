@@ -5,7 +5,7 @@
   <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>QuizBomb – Multiplayer Lobby</title>
-  <link rel="stylesheet" href="css/multiplayer.css"/>
+  <link rel="stylesheet" href="/css/multiplayer.css"/>
 </head>
 <body>
   <!-- Lobby Section -->
@@ -15,7 +15,7 @@
     <div class="controls">
       <button id="createRoom" class="primary">Create Room</button>
       <button id="joinRoom" class="primary">Join Room</button>
-      <button id="showLeaderboard" class="secondary">Leaderboard</button>
+      <button id="leaderboardBtn" class="secondary">Leaderboard</button>
     </div>
     <p id="lobbyInfo"> Create or Join a lobby to get started! </p>
   </section>
@@ -58,10 +58,15 @@
       </form>
 
       <div id="lobbyInfoBox">
-        <h3>Room Name:</h3>
+        <h3>Room Code:</h3>
         <p id="roomCodeDisplay" class="room-code">------</p>
+
+        <h3>Room Name:</h3>
+        <p id="roomNameDisplay" class="room-code">------</p>
+
         <h4>Players in Lobby</h4>
-        <ul id="playerList"></ul>
+        <ul id="lobbyPlayerList"></ul>
+
         <button id="startGame" class="primary full-width">Start Game</button>
       </div>
     </div>
@@ -90,17 +95,51 @@
   <!-- Game Screen -->
   <section id="game" style="display:none">
     <h2>Game Room: <span id="roomCode"></span></h2>
-    <div id="promptArea">
-      <div id="prompt-text"></div>
-      <div id="timer-text"></div>
-      <input id="answer-input" placeholder="Type your translation…" autofocus />
-      <div id="reveal-text"></div>
-      <div id="game-end">Game Over</div>
+
+    <!-- new: show whose turn it is -->
+    <div id="turn-text" style="margin:0.5rem 0; font-weight:bold"></div>
+
+    <div class="game-container">
+      <!-- center prompt -->
+      <div id="promptArea">
+        <div id="prompt-text"></div>
+        <div id="timer-text"></div>
+        <input id="answer-input" placeholder="Type your translation…" disabled />
+        <div id="reveal-text"></div>
+        <div id="game-end" style="display:none">Game Over</div>
+      </div>
+
+      <!-- players wrap around -->
+      <ul id="gamePlayerList" class="players-circle"></ul>
     </div>
+
     <div id="statusLog"></div>
   </section>
 
+  <!-- ─── End-Game Modal ───────────────────────────────── -->
+  <div id="endModal" class="modal">
+    <div class="modal-content">
+      <h2>Game Over</h2>
+      <ul id="leaderboard-list"></ul>
+      <button id="returnButton">Return to Lobby</button>
+    </div>
+  </div>
+
+  <!-- Leaderboard Modal -->
+  <div id="leaderboardModal" class="modal" style="display:none">
+    <div class="modal-content">
+      <h2>All‐Time Leaderboard</h2>
+      <ul id="leaderboardList"></ul>
+      <button id="closeLeaderboard">Close</button>
+    </div>
+  </div>
+
+  <!-- sound effects -->
+  <audio id="sfx-correct" src="/assets/sound/sfx/correct.wav" preload="auto"></audio>
+  <audio id="sfx-wrong"   src="/assets/sound/sfx/incorrect.wav"   preload="auto"></audio>
+
+  <!-- load your client logic last -->
   <script src="/socket.io/socket.io.js"></script>
-  <script src="js/multiplayer.js"></script>
+  <script type="module" src="/js/multiplayer.js"></script>
 </body>
 </html>
