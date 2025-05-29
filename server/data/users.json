@@ -1,14 +1,23 @@
 [
   {
     "user_id": 1,
-    "username": "Gibdin",
-    "password": "password123",
-    "highScore": 5
+    "username": "u1",
+    "password": "p1"
   },
   {
     "user_id": 2,
+    "username": "bob",
+    "password": "p1"
+  },
+  {
+    "user_id": 3,
+    "username": "Gibdin",
+    "password": "password123",
+    "highScore": 1
+  },
+  {
+    "user_id": 4,
     "username": "zxc",
-    "password": "123456",
-    "highScore": 7
+    "password": "123456"
   }
 ]

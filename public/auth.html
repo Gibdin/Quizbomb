@@ -1,53 +1,53 @@
 <!-- File: public/login.html -->
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>QuizBomb – Login</title>
-  <link rel="stylesheet" href="css/auth.css">
-</head>
-<body>
-  <div class="auth-container">
-    <h1>QuizBomb</h1>
-    <form id="loginForm">
-      <label>
-        Username
-        <input type="text" name="username" required />
-      </label>
-      <label>
-        Password
-        <input type="password" name="password" required />
-      </label>
-      <button type="submit">Log In</button>
-      <p class="switch">
-        Don’t have an account? <a href="#" id="showSignup">Sign up</a>
-      </p>
-      <p id="loginError" class="error"></p>
-    </form>
-  </div>
-
-  <!-- Signup modal triggered by “Sign up” link -->
-  <div id="signupModal" class="modal">
-    <div class="modal-content">
-      <span class="close" id="closeSignup">&times;</span>
-      <h2>Create Account</h2>
-      <form id="signupForm">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>QuizBomb – Login</title>
+    <link rel="stylesheet" href="css/auth.css" />
+  </head>
+  <body>
+    <div class="auth-container">
+      <h1>QuizBomb</h1>
+      <form id="loginForm">
         <label>
           Username
           <input type="text" name="username" required />
         </label>
         <label>
           Password
-          <input type="password" name="password" required minlength="6" />
+          <input type="password" name="password" required />
         </label>
-        <button type="submit">Sign Up</button>
-        <p id="signupError" class="error"></p>
+        <button type="submit">Log In</button>
+        <p class="switch">
+          Don’t have an account? <a href="#" id="showSignup">Sign up</a>
+        </p>
+        <p id="loginError" class="error"></p>
       </form>
     </div>
-  </div>
 
-  <script src="js/auth.js"></script>
-</body>
+    <!-- Signup modal triggered by “Sign up” link -->
+    <div id="signupModal" class="modal">
+      <div class="modal-content">
+        <span class="close" id="closeSignup">&times;</span>
+        <h2>Create Account</h2>
+        <form id="signupForm">
+          <label>
+            Username
+            <input type="text" name="username" required />
+          </label>
+          <label>
+            Password
+            <input type="password" name="password" required minlength="6" />
+          </label>
+          <button type="submit">Sign Up</button>
+          <p id="signupError" class="error"></p>
+        </form>
+      </div>
+    </div>
+
+    <script src="js/auth.js"></script>
+  </body>
 </html>
