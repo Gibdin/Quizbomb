@@ -1,11 +1,6 @@
 # Quizbomb
 
-Dissertation project
-
 In response to the limitations of passive, lesson-based language apps, this dissertation investigates the role of real-time competition and engaging feedback loops in boosting vocabulary retention. The targeted literature review synthesises empirical findings on gamification mechanics leaderboards, timed challenges, social presence, gaming psychology and identifies gaps in harnessing these strategies within language-learning contexts.
-
-Quizbomb, a lightweight web prototype built with Node.js, Socket.IO and JSON-file authentication, embodies these principles through rapid, multiplayer translation rounds, dual in-game and global leaderboards, and immediate correctness feedback. Usability surveys showed high enjoyment, clear rules & navigation, and educational impact rated positively ( 93% >= 3)  
-
-While there was success in QuizBomb, the intended product was not what we got and instead only a prototype was available on release. Building off this, the next iteration will incorporate a database-backed user system, custom word-pool management, and streamlined UI flows to elevate both usability and educational efficiency.
-
-By grounding design in validated gamification research and prototype evidence, this work lays a foundation for a scalable, socially engaging language-learning platform that transforms rote drills into dynamic, retention-focused gameplay.
+Quizbomb, a lightweight web prototype built with Node.js, Socket.IO and JSON-file authentication, embodies these principles through rapid, multiplayer translation rounds, dual in-game and global leaderboards, and immediate correctness feedback. Testing showed positive feedback for educational learning over a period of time & engaging core gameplay functionality
+While there was success in QuizBomb, the intended product was not what we got and instead only a prototype with core gameplay functionality was available on release. Building off this, the next iteration will incorporate a database-backed user system, custom word-pool management, and streamlined UI flows to elevate both usability and educational efficiency.
+By grounding design in validated gamification research and prototype evidence, this work lays a foundation for a scalable, engaging language-learning platform that transforms rote drills into dynamic, retention-focused gameplay.
