@@ -4,7 +4,7 @@ import path from "path";
 import request from "supertest";
 import { app } from "../../server/index.js";
 
-// Jest sets __dirname for you:
+// Jest sets __dirname:
 const dbPath = path.join(__dirname, "tmpUsers.json");
 
 describe("S5–S9: /api/register & /api/login", () => {

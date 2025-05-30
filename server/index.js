@@ -17,7 +17,7 @@ try {
   __dirname = path.join(process.cwd(), "server");
 }
 
-// ─── PATHS ───────────────────────────────────────────────────
+// ─── PATHS ─────────────────────
 const PUBLIC_DIR = path.join(__dirname, "..", "public");
 const USERS_DB = path.join(__dirname, "data", "users.json");
 const WORDS_JSON = path.join(PUBLIC_DIR, "assets", "json", "wordPairs.json");
@@ -27,7 +27,7 @@ function getUsersDbPath() {
   return process.env.USERS_DB || STATIC_USERS_DB;
 }
 
-// ─── EXPRESS + HTTP + SOCKET.IO SETUP ─────────────────
+// ─── EXPRESS + HTTP + SOCKET.IO SETUP ───────────
 const app = express();
 const httpServer = createServer(app);
 
@@ -48,7 +48,7 @@ try {
 app.use(express.json());
 app.use(express.static(PUBLIC_DIR));
 
-// ─── AUTH HELPERS ───────────────────────────────────────
+// ─── AUTH HELPERS ────────────
 function readUsers() {
   try {
     return JSON.parse(fs.readFileSync(getUsersDbPath(), "utf-8"));
@@ -61,7 +61,7 @@ function writeUsers(users) {
   fs.writeFileSync(getUsersDbPath(), JSON.stringify(users, null, 2));
 }
 
-// ─── AUTH ENDPOINTS ───────────────────────────────────
+// ─── AUTH ENDPOINTS ────────────
 app.post("/api/register", (req, res) => {
   const { username, password } = req.body;
   if (!username || !password) {
@@ -95,7 +95,7 @@ app.post("/api/login", (req, res) => {
   });
 });
 
-// ─── WORD‐PAIRS ENDPOINT ───────────────────────────────
+// ─── WORD‐PAIRS ENDPOINT ───────────────
 app.get("/api/wordPairs", (req, res) => {
   fs.readFile(WORDS_JSON, "utf-8", (err, raw) => {
     if (err) {
@@ -112,7 +112,7 @@ app.get("/api/wordPairs", (req, res) => {
   });
 });
 
-// ─── IN‐MEMORY ROOMS & DEFAULTS ───────────────────────
+// ─── IN‐MEMORY ROOMS & DEFAULTS ─────────
 const DEFAULT_LIVES = 3;
 const DEFAULT_MAX_PLAYERS = 4;
 const DEFAULT_PROMPT_TIMER = 15; // seconds
@@ -120,7 +120,7 @@ const DEFAULT_IS_PRIVATE = false;
 
 const rooms = new Map();
 
-// ─── LOAD WORD PAIRS AT STARTUP ────────────────────────
+// ─── LOAD WORD PAIRS AT STARTUP ───────────
 let WORD_PAIRS = [];
 try {
   WORD_PAIRS = JSON.parse(fs.readFileSync(WORDS_JSON, "utf-8"));
@@ -128,12 +128,12 @@ try {
   console.error("Failed to load word pairs:", err);
 }
 
-// ─── DIFFICULTY & SCORING CONSTANTS ─────────────────
+// ─── DIFFICULTY & SCORING CONSTANTS ─────────
 const MEDIUM_THRESHOLD = 5;
 const HARD_THRESHOLD = 10;
 const POINTS = { easy: 1, medium: 2, hard: 3 };
 
-// ─── UTILITY: GENERATE ROOM CODES ─────────────────────
+// ─── UTILITY: GENERATE ROOM CODES ─────────────
 function generateCode(length = 5) {
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
   let code = "";
@@ -143,7 +143,7 @@ function generateCode(length = 5) {
   return code;
 }
 
-// ─── HELPER: EXTRACT PUBLIC ROOM DATA ─────────────────
+// ─── HELPER: EXTRACT PUBLIC ROOM DATA ─────────
 function getRoomsData() {
   return Array.from(rooms.values()).map((r) => {
     // fallback to an empty object if settings was never set
@@ -158,12 +158,12 @@ function getRoomsData() {
   });
 }
 
-// ─── API: LIST ACTIVE ROOMS ───────────────────────────
+// ─── API: LIST ACTIVE ROOMS ──────────────
 app.get("/api/rooms", (req, res) => {
   res.json(getRoomsData());
 });
 
-// ─── LEADERBOARD ENDPOINT ─────────────────────────────
+// ─── LEADERBOARD ENDPOINT ───────────────────
 app.get("/api/leaderboard", (req, res) => {
   const users = readUsers(); // reads server/data/users.json
   const ranking = users
@@ -172,7 +172,7 @@ app.get("/api/leaderboard", (req, res) => {
   res.json(ranking);
 });
 
-// ─── SOCKET.IO MULTIPLAYER LOGIC ───────────────────────
+// ─── SOCKET.IO MULTIPLAYER LOGIC ────────────────
 io.on("connection", (socket) => {
   console.log("Socket connected:", socket.id);
 
@@ -435,10 +435,10 @@ io.on("connection", (socket) => {
   });
 });
 
-// ─── START THE SERVER ──────────────────────────────────
+// ─── START THE SERVER ────────────
 const PORT = process.env.PORT || 3000;
 
-// only start listening when *not* under Jest (i.e. NODE_ENV !== 'test')
+// only start listening when NOT under Jest (i.e. NODE_ENV !== 'test')
 if (process.env.NODE_ENV !== "test") {
   httpServer.listen(PORT, () => {
     console.log(`Server listening on http://localhost:${PORT}`);

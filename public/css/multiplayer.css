@@ -7,7 +7,7 @@
     Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
   --primary-color: #0ce9de;
   --border-radius: 5px;
-} /* ← make sure you close :root here! */
+} 
 
 /* ─── Leaderboard Modal (does NOT affect #endModal) ─── */
 #leaderboardModal .modal-content {
@@ -254,12 +254,12 @@ input[name="isPrivate"]:checked ~ .password-field {
   padding-top: 1rem;
 }
 
-/* Join form hidden until a room is selected */
+/* Lobby form styling */
 #joinForm {
   display: none;
 }
 
-/* Reset list styling and ensure block layout */
+/* Player list room list layout */
 #playerList,
 #roomsList {
   list-style: none;
@@ -269,24 +269,21 @@ input[name="isPrivate"]:checked ~ .password-field {
 
 #playerList li,
 #roomsList li {
-  display: block; /* force each <li> on its own line */
-  padding: 0.25rem 0; /* vertical spacing */
-  /* optional separator: */
-  /* border-bottom: 1px solid var(--fg-color); */
+  display: block; 
+  padding: 0.25rem 0; 
 }
 
 /* -------------- Multiplayer game layout -------------- */
 .game-container {
   position: relative;
   width: 100%;
-  /* adjust height if needed to fit under your header */
   height: calc(100vh - 100px);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 2rem; /* space between prompt and scoreboard */
-  padding-bottom: 4rem; /* give room for footer */
+  gap: 2rem; 
+  padding-bottom: 4rem; 
 }
 
 #promptArea {
@@ -346,13 +343,8 @@ input[name="isPrivate"]:checked ~ .password-field {
   box-shadow: 0 0 8px var(--primary-color);
 }
 
-/* show eliminated players as faded/struck */
-.players-circle li.eliminated {
-  opacity: 0.4;
-  text-decoration: line-through;
-}
 
-/* fade & strike‐through eliminated */
+/* eliminated */
 .players-circle li.eliminated {
   opacity: 0.4;
   text-decoration: line-through;
@@ -388,7 +380,7 @@ body,
   white-space: nowrap;
 }
 
-/* ─── End-Game Modal Styling ───────────────────────── */
+/* ─── End-Game Modal Styling ─── */
 #endModal .modal-content {
   max-width: 320px;
   text-align: center;

@@ -1,6 +1,6 @@
 /* File: public/css/auth.css */
 
-/* Reuse the main theme variables */
+/*main theme variables */
 :root {
   --bg-color: #292929;
   --fg-color: #fff;
@@ -127,7 +127,7 @@ body {
   margin-top: 0.5rem;
 }
 
-/* Modal Backdrop: nearly opaque to hide login beneath */
+/* Modal Backdrop: nearly transparant to hide login beneath */
 .modal {
   display: none;
   position: fixed;
