@@ -287,29 +287,33 @@ io.on("connection", (socket) => {
 
   // ─── PROMPT LOOP: EMIT TURNS, PROMPTS, REVEALS, END ───
   async function startPromptLoop(room) {
-    const { code, settings } = room;
-    const promptMs = settings.promptTimer * 1000;
+    const { code } = room;
 
     function nextTurn() {
       // if only one left -> end + leaderboard
       if (room.players.length <= 1) {
+        // notify clients we’re done
         io.to(code).emit("game:end");
 
-        // 1) load users, bump any high scores, and write back
+        // ─── Build & emit the LOBBY-ONLY leaderboard ─────────
+        const localPlayers = [...room.players, ...room.eliminated];
+        const localRanking = localPlayers
+          .map(p => ({ name: p.name, score: p.score }))
+          .sort((a, b) => b.score - a.score);
+        io.to(code).emit("game:leaderboard-local", localRanking);
+
+        // ─── Now update global high‐scores and emit GLOBAL leaderboard ─
         const users = readUsers();
-        for (const p of [...room.players, ...room.eliminated]) {
-          const u = users.find((u) => u.username === p.name);
-          if (u && p.score > (u.highScore || 0)) {
-            u.highScore = p.score;
-          }
+        for (const p of localPlayers) {
+          const u = users.find(u => u.username === p.name);
+          if (u && p.score > (u.highScore || 0)) u.highScore = p.score;
         }
         writeUsers(users);
 
-        // 2) build & emit the all-time leaderboard
-        const ranking = users
-          .map((u) => ({ name: u.username, highScore: u.highScore || 0 }))
+        const globalRanking = users
+          .map(u => ({ name: u.username, highScore: u.highScore || 0 }))
           .sort((a, b) => b.highScore - a.highScore);
-        return io.to(code).emit("game:leaderboard", ranking);
+        return io.to(code).emit("game:leaderboard-global", globalRanking);
       }
 
       // pick current player
@@ -339,9 +343,13 @@ io.on("connection", (socket) => {
         playerId: turnPlayer.id,
         playerName: turnPlayer.name,
       });
+      // how many seconds the client should show
+      const timer = room.settings?.promptTimer ?? DEFAULT_PROMPT_TIMER;
+      // convert to ms for our timeout
+      const promptMs = timer * 1000;
       io.to(code).emit("game:prompt", {
         word: pair.french,
-        timer: settings.promptTimer,
+        timer,
       });
 
       let turnOver = false;
@@ -438,7 +446,7 @@ io.on("connection", (socket) => {
 // ─── START THE SERVER ────────────
 const PORT = process.env.PORT || 3000;
 
-// only start listening when NOT under Jest (i.e. NODE_ENV !== 'test')
+// only start listening when NOT under Jest
 if (process.env.NODE_ENV !== "test") {
   httpServer.listen(PORT, () => {
     console.log(`Server listening on http://localhost:${PORT}`);

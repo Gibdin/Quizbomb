@@ -313,20 +313,21 @@ const endModal = document.getElementById("endModal");
 const leaderboardEl = document.getElementById("leaderboard-list");
 const returnButton = document.getElementById("returnButton");
 
-if (typeof socket.off === "function") {
-  socket.off("game:leaderboard");
-}
-socket.on("game:leaderboard", (ranking) => {
+// lobby‐only leaderboard
+socket.on("game:leaderboard-local", (ranking) => {
   // hide game UI
   gameSection.style.display = "none";
 
-  // populate leaderboard with highScore (default to 0)
+  // populate end‐game modal with lobby scores
   leaderboardEl.innerHTML = ranking
-    .map((p, i) => `<li>${i + 1}. ${p.name} — ${p.highScore ?? 0} pts</li>`)
+    .map((p, i) => `<li>${i + 1}. ${p.name} — ${p.score} pts</li>`)
     .join("");
-
-  // show end‐game modal
   endModal.style.display = "flex";
+});
+
+// global leaderboard (optional: show in a separate modal or reuse same)
+socket.on("game:leaderboard-global", (ranking) => {
+  // e.g. console.log('all‐time ranking', ranking);
 });
 
 // ─── 8) Return to Lobby Button ────────────────────────
